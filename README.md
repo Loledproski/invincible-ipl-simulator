@@ -1,102 +1,239 @@
-# 🏏 INVINCIBLE – IPL Strategy Simulator
+<p align="center">
+  <img src="screenshots/main-lobby.png" width="100%">
+</p>
 
-> **Build your dream XI. Defeat every opponent. Become Invincible.**
+<h1 align="center">🏏 Invincible – IPL Strategy Simulator</h1>
 
-![React](https://img.shields.io/badge/React-19-blue?logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
-![Vite](https://img.shields.io/badge/Vite-6-purple?logo=vite)
-![Tailwind CSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?logo=tailwindcss)
-![License](https://img.shields.io/badge/License-MIT-green)
+<p align="center">
+A premium browser-based cricket strategy game where you draft legendary IPL players, build your dream Playing XI, and attempt to complete an undefeated championship campaign against historical IPL franchises.
+</p>
+
+<p align="center">
+
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+
+</p>
 
 ---
 
-## 📖 About the Project
+# 🏏 About The Project
 
-**Invincible** is a fully interactive IPL strategy simulator built using **React, TypeScript, Vite, Tailwind CSS, Framer Motion, and Lucide React**. The game challenges players to build their ultimate cricket squad from historical IPL franchises and legendary players before attempting to complete an entire tournament without suffering a single defeat.
+**Invincible** is a browser-based IPL strategy simulator inspired by sports management games. Instead of controlling players directly, the objective is to build the strongest possible Playing XI using randomized historical IPL player packs and guide your team through an entire undefeated tournament campaign.
 
-Unlike traditional cricket games, **Invincible** focuses on strategic decision-making rather than manual gameplay. Every draft choice matters. Players must carefully balance batting strength, bowling depth, all-rounders, wicketkeeping options, and captaincy while assembling a championship-winning XI.
+Every decision matters. Selecting the right combination of batters, bowlers, wicketkeepers, and all-rounders directly impacts your team's strength, tactical balance, and match outcomes. One defeat immediately ends your championship run, making every draft decision and simulated match critically important.
 
-The journey begins by selecting an IPL franchise, which dynamically transforms the application's colors, branding, and overall visual theme. Players then enter a randomized historical player draft where every selection influences the team's overall rating and future tournament performance. After finalizing their squad and appointing a captain, the simulator generates balanced opponents and realistic match outcomes through a custom-built simulation engine.
-
-Every victory advances the campaign, while a single defeat immediately ends the tournament. Successfully completing the entire season unbeaten earns a place in the exclusive **Invincible Hall of Fame**, rewarding players who create the perfect combination of talent, balance, and strategy.
-
-To enhance immersion, the simulator includes animated match progression, detailed scorecards, franchise-specific visual themes, historical IPL trivia, dynamic opponent balancing, Hall of Fame records, and a responsive modern interface that works across devices.
-
-This project was initially prototyped using **Google AI Studio** and later exported for local development. From that point onward, the application was extensively customized, debugged, expanded with new gameplay systems, optimized, and maintained using **Visual Studio Code, Git, and GitHub**. Major systems—including the historical player database, drafting mechanics, tournament flow, squad balancing, Hall of Fame, scorecards, UI improvements, bug fixes, and deployment pipeline—were refined through iterative development and manual engineering.
-
-The result is a complete single-page web application that combines strategy, sports analytics, modern frontend development, and interactive UI design into a polished browser experience for cricket enthusiasts.
+The project combines strategic drafting, historical IPL statistics, real-time squad analysis, detailed scorecards, persistent championship history, and a premium gaming-inspired user interface into a complete browser experience.
 
 ---
 
 # ✨ Features
 
-- 🏏 Historical IPL player database
-- 🎨 Dynamic franchise-based UI themes
-- 🎯 Intelligent draft system
-- 👑 Captain selection
-- 📊 Squad balance & overall rating calculation
-- ⚔️ Dynamic opponent balancing
-- 🎮 Tournament progression system
-- 📈 Match simulation engine
-- 📋 Detailed scorecards
-- 🏆 Invincible Hall of Fame
-- 💡 Random IPL trivia
-- ✨ Smooth animations using Framer Motion
-- 📱 Responsive modern interface
-- ⚡ Fast Vite-powered frontend
+- 🏏 Draft legendary IPL players from randomized franchise packs
+- 🎯 Build a balanced Playing XI using strategic team composition
+- 📅 Historical IPL databases covering multiple seasons
+- 🏆 Short and Long tournament campaign modes
+- ⚡ Complete cricket match simulation engine
+- 📊 Detailed batting and bowling scorecards
+- 👑 Man of the Match awards
+- 📈 Live Batting, Bowling and Team Overall ratings
+- 🎨 Dynamic franchise themes that completely transform the interface
+- 🏆 Persistent Hall of Fame for championship-winning teams
+- 📖 Live IPL trivia displayed throughout gameplay
+- 💾 Automatic campaign progress saving
+- 📱 Fully responsive interface
+- 🎮 Premium AAA-inspired sports game UI
 
 ---
 
-# 🛠️ Tech Stack
+# 🛠 Tech Stack
+
+### Frontend
 
 - React
 - TypeScript
 - Vite
-- Tailwind CSS
-- Framer Motion
-- Lucide React
-- Google AI Studio (Initial Prototype)
-- Visual Studio Code
-- Git
-- GitHub
+
+### Styling
+
+- CSS3
+- Responsive Layout
+- Custom Theme Engine
+
+### Game Engine
+
+- Custom Cricket Match Simulation
+- Historical IPL Player Database
+- Dynamic Team Rating System
+- Draft & Campaign Logic
 
 ---
 
 # 🎮 Gameplay
 
-1. Select your favorite IPL franchise.
-2. Configure your tournament.
-3. Draft an all-star playing XI from historical IPL squads.
-4. Appoint your captain.
-5. Enter the tournament.
-6. Simulate every match.
-7. Stay undefeated to become **INVINCIBLE**.
+The gameplay is divided into multiple stages.
+
+1. Choose your IPL franchise.
+2. Select a historical IPL season.
+3. Configure campaign length.
+4. Draft your Playing XI from randomized franchise packs.
+5. Balance batting, bowling, wicketkeepers and all-rounders.
+6. Simulate every match using the custom cricket engine.
+7. Win every game to become **Invincible**.
+8. Enter the Hall of Fame and create your cricket legacy.
 
 ---
 
-# 🚀 Live Demo
+# 📸 Screenshots & Gameplay Walkthrough
 
-### 🌐 https://invincible.ai.studio
-
----
-
-# 📸 Screenshots
-
-_Add screenshots of the Lobby, Team Selection, Draft Screen, Match Simulation, Scorecard, and Hall of Fame here._
+Follow the complete journey from creating a franchise to building an undefeated championship squad.
 
 ---
 
-# 🔮 Future Improvements
+## 🏠 Main Lobby
 
-- Live ball-by-ball commentary
-- Advanced AI simulation engine
+The central hub where every campaign begins. Players can initialize a new draft run, browse IPL trivia, and review previous championship victories through the Hall of Fame.
+
+![Main Lobby](screenshots/main-lobby.png)
+
+---
+
+## 🌈 Dynamic Franchise Themes
+
+Every IPL franchise features its own unique visual identity. Selecting a different team instantly updates the application's colors, gradients, glow effects, headers, and interface styling to create a personalized experience.
+
+![Dynamic Franchise Themes](screenshots/02-franchise-themes.gif)
+
+---
+
+## 🏆 Hall of Fame
+
+Every undefeated championship is permanently recorded. Winning teams, captains, squad members, seasons, campaign dates, and win streaks are preserved, allowing players to build a lasting cricket legacy across multiple playthroughs.
+
+![Hall of Fame](screenshots/hall-of-fame.png)
+
+---
+
+## 🏏 Franchise Selection
+
+Choose from both current and historic IPL franchises before beginning your campaign. Every franchise includes custom branding and personalized interface styling.
+
+![Franchise Selection](screenshots/franchise-selection.png)
+
+---
+
+## ⚙ Campaign Configuration
+
+Select the historical IPL season database and choose between a short or long tournament campaign before entering the draft room.
+
+![Campaign Setup](screenshots/campaign-setup.png)
+
+---
+
+## 🎯 Strategic Draft Room
+
+Draft legendary IPL players from randomized franchise packs while monitoring batting strength, bowling strength, squad balance, tactical warnings, and Playing XI progress in real time.
+
+![Draft Room](screenshots/draft-room.png)
+
+---
+
+## 📅 Campaign Dashboard
+
+Manage your undefeated campaign by viewing fixtures, squad ratings, active Playing XI, tournament progress, and simulate every match using the integrated cricket engine.
+
+![Campaign Dashboard](screenshots/campaign.png)
+
+---
+
+## 📊 Match Scorecards
+
+Each simulated match generates a complete professional scorecard including batting performances, bowling figures, innings summaries, match statistics, final results, and the Man of the Match.
+
+![Match Scorecard](screenshots/scorecard.png)
+
+---
+
+## 💀 Campaign Complete
+
+One defeat immediately ends the campaign. Review your complete tournament statistics, overall record, selected franchise, historical season, and decide whether to begin another attempt.
+
+![Campaign Complete](screenshots/game-over.png)
+
+---
+
+# 📂 Project Structure
+
+```
+Invincible-IPL-Simulator
+│
+├── screenshots/
+├── src/
+├── assets/
+├── public/
+├── package.json
+├── vite.config.ts
+├── tsconfig.json
+├── README.md
+└── LICENSE
+```
+
+---
+
+# 🚀 Installation
+
+Clone the repository
+
+```bash
+git clone https://github.com/Loledproski/invincible-ipl-simulator.git
+```
+
+Navigate into the project
+
+```bash
+cd invincible-ipl-simulator
+```
+
+Install dependencies
+
+```bash
+npm install
+```
+
+Run the development server
+
+```bash
+npm run dev
+```
+
+Build for production
+
+```bash
+npm run build
+```
+
+---
+
+# 🎯 Future Improvements
+
+- Online multiplayer drafting
+- Player trading system
 - Auction mode
-- Career mode
-- Online multiplayer
-- Player statistics dashboard
-- Save & Load tournaments
-- Achievement system
-- Custom tournaments
+- Franchise career mode
+- Difficulty levels
+- Dynamic commentary engine
+- Player injuries and fitness
+- Achievement & trophy system
+- Steam-inspired statistics dashboard
+- Cloud save synchronization
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
 
 ---
 
@@ -104,12 +241,4 @@ _Add screenshots of the Lobby, Team Selection, Draft Screen, Match Simulation, S
 
 **Harsh Mishra**
 
-Computer Science Student • Frontend Developer • Problem Solver
-
-GitHub: https://github.com/Loledproski
-
----
-
-## ⭐ Support
-
-If you enjoyed this project, consider giving it a ⭐ on GitHub!
+If you enjoyed this project, consider ⭐ starring the repository to support future development.
