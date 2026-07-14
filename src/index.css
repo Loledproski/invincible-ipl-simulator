@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+:root {
+  --theme-bg: #000000;
+  --theme-border: #ffffff;
+  --theme-accent: #ffffff;
+  --theme-dark: #000000;
+  --theme-secondary: #1a1a1a;
+}
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  
+  --color-theme-bg: var(--theme-bg);
+  --color-theme-border: var(--theme-border);
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-dark: var(--theme-dark);
+  --color-theme-secondary: var(--theme-secondary);
+}
+
+@layer base {
+  html, body {
+    overflow-x: hidden;
+    background-color: var(--theme-bg);
+    color: #ffffff;
+    font-family: var(--font-sans);
+  }
+}
+
+/* Brutalist offset shadow */
+.brutalist-shadow {
+  box-shadow: 4px 4px 0px var(--theme-border);
+}
+
+.brutalist-shadow-gold {
+  box-shadow: 4px 4px 0px var(--theme-accent);
+}
+
+.team-text-glow {
+  text-shadow: 0 0 12px var(--theme-accent);
+}
+
+.team-border-glow {
+  box-shadow: 0 0 15px -3px var(--theme-accent);
+}
+
+/* Custom scrollbar for trivia card */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--theme-accent, #ffffff);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--theme-accent, #ffffff) rgba(255, 255, 255, 0.05);
+}
+

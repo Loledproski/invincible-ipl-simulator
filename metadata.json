@@ -1,0 +1,6 @@
+{
+  "name": "Invincible",
+  "description": "Draft a perfect 11-player cricket squad from random historical IPL rosters and simulate a tournament campaign without losing a single match.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
