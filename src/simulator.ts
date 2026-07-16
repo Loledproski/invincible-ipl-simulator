@@ -1,6 +1,6 @@
-import { Player, Opponent, MatchResult, MatchScorecardEntry, PlayerRole } from './types';
-import { PLAYER_DATABASE } from './data';
-import { isOverseasPlayer, isTenYearLoyalist } from './utils';
+import { Player, Opponent, MatchResult, MatchScorecardEntry } from './types';
+import { PLAYER_DATABASE, IPL_WINNERS_MAP, IPL_FINALISTS_MAP, IPL_TOP_FOUR_MAP } from './data';
+import { isOverseasPlayer } from './utils';
 
 // Helper to generate a random number within a range
 const randomInRange = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -378,7 +378,7 @@ function generateScorecardForInnings(
   });
 
   let totalPropRuns = 0;
-  const propRuns = bowlersToUse.map((b, idx) => {
+  const propRuns = bowlersToUse.map((_b, idx) => {
     if (bowlerBallsAllocated[idx] === 0) return 0;
     const overs = bowlerBallsAllocated[idx] / 6;
     const econ = bowlerEconomyWeights[idx];
@@ -387,7 +387,7 @@ function generateScorecardForInnings(
     return val;
   });
 
-  bowlersToUse.forEach((b, idx) => {
+  bowlersToUse.forEach((_b, idx) => {
     if (bowlerBallsAllocated[idx] === 0) return;
     const share = propRuns[idx] / (totalPropRuns || 1);
     let runs = Math.round(totalRuns * share);
@@ -429,7 +429,7 @@ function generateScorecardForInnings(
 
   const totalBatWeight = battingWeights.reduce((a, b) => a + b, 0) || 1;
 
-  batsmenSquad.forEach((p, idx) => {
+  batsmenSquad.forEach((_p, idx) => {
     if (idx >= batsmenWhoBatted) return;
     const share = battingWeights[idx] / totalBatWeight;
     let balls = Math.round(actualBallsFaced * share);
@@ -473,7 +473,7 @@ function generateScorecardForInnings(
   });
 
   let totalPropRunsBat = 0;
-  const propRunsBat = batsmenSquad.map((p, idx) => {
+  const propRunsBat = batsmenSquad.map((_p, idx) => {
     if (idx >= batsmenWhoBatted) return 0;
     const balls = batsmanBalls[idx];
     const sr = batsmanSRs[idx];
@@ -482,7 +482,7 @@ function generateScorecardForInnings(
     return val;
   });
 
-  batsmenSquad.forEach((p, idx) => {
+  batsmenSquad.forEach((_p, idx) => {
     if (idx >= batsmenWhoBatted) return;
     const share = propRunsBat[idx] / (totalPropRunsBat || 1);
     let runs = Math.round(totalRuns * share);
@@ -542,12 +542,13 @@ export function simulateMatch(
   matchNumber: number,
   squad: Player[],
   captainId: string | null,
-  userTeamName: string,
+
   opponent: Opponent,
-  isLongTournament: boolean = false
+  isLongTournament: boolean = false,
+  selectedTournamentYear?: number
 ): MatchResult {
-  // Determine tournament year from drafted squad players
-  const tournamentYear = squad.length > 0 ? squad[0].year : 2024;
+  // Determine tournament year
+  const tournamentYear = selectedTournamentYear || (squad.length > 0 ? squad[0].year : 2024);
 
   // Build opponent Playing XI dynamically using actual squads from that season!
   const opponentPlayingXI = getOpponentPlayingXI(opponent.shortName, tournamentYear);
@@ -587,10 +588,10 @@ export function simulateMatch(
   const oppWicketFactor = 5.0 + (userBowlStrength - oppBatStrength) * 0.08 + (randomInRange(-20, 20) / 10);
   let oppWickets = Math.min(10, Math.max(0, Math.round(oppWicketFactor)));
 
-  // Target win probability to win the tournament ~1 in 15 runs:
-  // Short (9 matches): p = 74%
-  // Long (14 matches): p = 83%
-  let winChance = isLongTournament ? 83 : 74;
+  // Target win probability to win the tournament ~1 in 10 runs:
+  // Short (9 matches): p = 77%
+  // Long (14 matches): p = 85%
+  let winChance = isLongTournament ? 85 : 77;
 
   // 1. Squad strength bonus
   const userOvr = userBalance.overallStrength;
@@ -602,12 +603,38 @@ export function simulateMatch(
   }
 
   // 2. Loyalty Boost: +3% per 10-year franchise loyalist!
-  const loyalistCount = squad.filter(p => isTenYearLoyalist(p.name, p.originalTeam)).length;
+  const loyalistCount = 0;
   winChance += loyalistCount * 3;
 
   // 3. Balance Penalties: -15% per squad composition error
   if (userBalance.errors.length > 0) {
     winChance -= userBalance.errors.length * 15;
+  }
+
+  // 4. Historical Season Advantage (Championship DNA vs Tough Seasons)
+  const actualWinnerOfThatYear = IPL_WINNERS_MAP[tournamentYear];
+  const finalistsOfThatYear = IPL_FINALISTS_MAP[tournamentYear] || [];
+  const topFourOfThatYear = IPL_TOP_FOUR_MAP[tournamentYear] || [];
+
+  // A. User team advantages based on historical year chosen
+  if (actualWinnerOfThatYear === activeThemeShortName) {
+    // Winner gets the most boost
+    winChance += 5;
+  } else if (finalistsOfThatYear.includes(activeThemeShortName)) {
+    // Finalist gets a medium boost
+    winChance += 3;
+  } else if (topFourOfThatYear.includes(activeThemeShortName)) {
+    // Top 4 gets a small boost
+    winChance += 1;
+  }
+
+  // B. Opponent team advantages
+  if (actualWinnerOfThatYear === opponent.shortName) {
+    winChance -= 7;
+  } else if (finalistsOfThatYear.includes(opponent.shortName)) {
+    winChance -= 5;
+  } else if (topFourOfThatYear.includes(opponent.shortName)) {
+    winChance -= 3;
   }
 
   // Clamp win chance between 15% and 95%

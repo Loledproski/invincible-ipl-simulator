@@ -7,6 +7,7 @@ export interface PlayerStats {
   battingSR?: number;
   wickets?: number;
   bowlingEconomy?: number;
+  bowlingSR?: number;
 }
 
 export interface Player {
@@ -18,6 +19,8 @@ export interface Player {
   originalTeam: string; // e.g. 'RCB'
   stats: PlayerStats;
   description: string;
+  tier?: 'Legend' | 'Star' | 'Normal' | 'Emerging';
+  isOverseas?: boolean;
 }
 
 export interface IPLTeamTheme {

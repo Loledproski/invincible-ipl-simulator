@@ -118,12 +118,15 @@ export function getTeamStyleProperties(theme: IPLTeamTheme | undefined) {
 /**
  * Determine if an IPL player is an overseas (foreign) player based on their name and description.
  */
-export function isOverseasPlayer(name: string, description?: string): boolean {
+export function isOverseasPlayer(player: { name: string; description?: string; isOverseas?: boolean } | string, description?: string): boolean {
+  if (typeof player !== 'string' && player.isOverseas !== undefined) return player.isOverseas;
+  const name = typeof player === 'string' ? player : player.name;
+  description = typeof player === 'string' ? description : player.description;
   const normalizedName = name.toLowerCase();
   const desc = (description || '').toLowerCase();
   
   // High-reliability nationality/geographical mentions
-  if (desc.includes('australian') || desc.includes('english') || desc.includes('kiwi') || 
+  if (desc.includes('overseas') || desc.includes('australian') || desc.includes('english') || desc.includes('kiwi') || 
       desc.includes('west indian') || desc.includes('guyanese') || desc.includes('south african') || 
       desc.includes('afghan') || desc.includes('sri lankan') || desc.includes('caribbean') ||
       desc.includes('new zealand') || desc.includes('england') || desc.includes('australia') ||
@@ -149,7 +152,24 @@ export function isOverseasPlayer(name: string, description?: string): boolean {
 /**
  * Determine if an IPL player is a legendary player.
  */
-export function isLegendPlayer(name: string): boolean {
+export function isLegendPlayer(player: { name: string; year?: number; rating?: number; tier?: string } | string, year?: number, rating?: number): boolean {
+  if (typeof player !== 'string' && player.tier === 'Legend') return true;
+  if (typeof player !== 'string' && player.tier && player.tier !== 'Legend') return false;
+  const name = typeof player === 'string' ? player : player.name;
+  year = typeof player === 'string' ? year : player.year;
+  rating = typeof player === 'string' ? rating : player.rating;
+  if (rating !== undefined) {
+    return rating >= 94;
+  }
+  const normalized = name.toLowerCase().trim();
+  if (year === 2008) {
+    const legends2008 = [
+      'ms dhoni', 'adam gilchrist', 'sachin tendulkar', 'shane warne',
+      'rahul dravid', 'sourav ganguly', 'yuvraj singh', 'virender sehwag'
+    ];
+    return legends2008.some(legend => normalized.includes(legend) || legend.includes(normalized));
+  }
+
   const legendNames = [
     'ms dhoni', 'm.s. dhoni', 'dhoni',
     'virat kohli', 'v kohli', 'kohli',
@@ -182,44 +202,45 @@ export function isLegendPlayer(name: string): boolean {
     'harbhajan singh', 'harbhajan',
     'ben stokes'
   ];
-  const normalized = name.toLowerCase().trim();
   return legendNames.some(legend => {
     if (normalized === legend) return true;
-    if (normalized.includes(legend) && legend.length >= 5) return true;
+    if (normalized.includes(legend) && legend.length >= 5) {
+      const idx = normalized.indexOf(legend);
+      // Ensure it's matching on a word boundary (e.g. to prevent "joginder sharma" from matching "r sharma")
+      if (idx === 0 || normalized.charAt(idx - 1) === ' ') {
+        return true;
+      }
+    }
     return false;
   });
 }
 
 /**
- * Determine if an IPL player is a 10-year franchise loyalist (same franchise for over 10 years).
+ * Determine if an IPL player is a star player.
  */
-export function isTenYearLoyalist(name: string, originalTeam: string): boolean {
-  const normalizedName = name.toLowerCase().trim();
-  const team = (originalTeam || '').toUpperCase().trim();
+export function isStarPlayer(player: { name: string; rating: number; description: string; year?: number; tier?: string }): boolean {
+  if (player.tier === 'Star') return true;
+  if (player.tier && player.tier !== 'Star') return false;
+  if (player.year === 2008) {
+    return player.rating === 89;
+  }
 
-  // 1. Virat Kohli - RCB (Since 2008)
-  if (normalizedName.includes('kohli') && team === 'RCB') return true;
+  if (isLegendPlayer(player.name, player.year, player.rating)) return false;
+  if (player.rating >= 94) return false;
 
-  // 2. MS Dhoni - CSK (Since 2008)
-  if (normalizedName.includes('dhoni') && team === 'CSK') return true;
-
-  // 3. Rohit Sharma - MI (Since 2011)
-  if (normalizedName.includes('rohit') && team === 'MI') return true;
-
-  // 4. Jasprit Bumrah - MI (Since 2013)
-  if (normalizedName.includes('bumrah') && team === 'MI') return true;
-
-  // 5. Sunil Narine - KKR (Since 2012)
-  if (normalizedName.includes('narine') && team === 'KKR') return true;
-
-  // 6. Andre Russell - KKR (Since 2014)
-  if (normalizedName.includes('russell') && team === 'KKR') return true;
-
-  // 7. Ravindra Jadeja - CSK (Since 2012)
-  if (normalizedName.includes('jadeja') && team === 'CSK') return true;
-
-  // 8. Bhuvneshwar Kumar - SRH (Since 2014)
-  if (normalizedName.includes('bhuvneshwar') && team === 'SRH') return true;
-
-  return false;
+  // Star players are defined by their rating tier (88-93)
+  return player.rating >= 88 && player.rating <= 93;
 }
+
+/**
+ * Determine if an IPL player is an emerging player.
+ */
+export function isEmergingPlayer(player: { name: string; rating: number; year?: number; tier?: string }): boolean {
+  if (player.tier === 'Emerging') return true;
+  if (player.tier && player.tier !== 'Emerging') return false;
+  if (player.year === 2008) {
+    return player.rating === 77;
+  }
+  return player.rating <= 80;
+}
+

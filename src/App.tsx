@@ -2,15 +2,15 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Trophy,
-  Users,
+
   Play,
-  RotateCcw,
+
   Star,
   ChevronRight,
-  TrendingUp,
+
   AlertCircle,
-  Clock,
-  User,
+
+
   Shield,
   Zap,
   Info,
@@ -18,25 +18,24 @@ import {
   Calendar,
   CheckCircle2,
   Lock,
-  Eye,
-  Menu,
+
+
   X,
-  HelpCircle,
-  Palette,
+
+
   Home,
   ChevronUp,
   ChevronDown,
   Shuffle
 } from 'lucide-react';
-import { Player, IPLTeamTheme, Opponent, MatchResult, CampaignState, PlayerRole } from './types';
-import { IPL_TEAMS, OPPONENTS, PLAYER_DATABASE, IPL_WINNERS_MAP, getActiveYearsForTeam, getOpponentsForYear } from './data';
+import { Player, Opponent, MatchResult, CampaignState, PlayerRole } from './types';
+import { IPL_TEAMS, OPPONENTS, PLAYER_DATABASE, IPL_WINNERS_MAP, IPL_FINALISTS_MAP, IPL_TOP_FOUR_MAP, getActiveYearsForTeam, getOpponentsForYear } from './data';
 import { PlayerCard } from './components/PlayerCard';
 import { calculateSquadBalance, simulateMatch } from './simulator';
-import { loadHallOfFame, saveToHallOfFame, getTeamStyleProperties, getVibrantTeamColor, HallOfFameEntry, isOverseasPlayer, isTenYearLoyalist } from './utils';
+import { loadHallOfFame, saveToHallOfFame, getTeamStyleProperties, getVibrantTeamColor, HallOfFameEntry, isOverseasPlayer, isLegendPlayer, isStarPlayer, isEmergingPlayer } from './utils';
 
 // Helper to roll random franchise and its available players
 function rollTeamAndGetOptions(squad: Player[], excludeTeamId?: string): { teamId: string; year: number; options: Player[] } {
-  const draftedNames = squad.map(p => p.name.toLowerCase().trim());
   const draftedTeams = squad.map(p => p.originalTeam);
   
   // Count how many drafted players from each team.
@@ -103,24 +102,90 @@ function rollTeamAndGetOptions(squad: Player[], excludeTeamId?: string): { teamI
 
 // Generate the list of campaign opponents
 function generateOpponentsList(length: 'Short' | 'Long', userTeamId: string, year: number): Opponent[] {
-  // Use dynamically active opponents for this specific historical year!
   const opps = getOpponentsForYear(year, userTeamId);
   const targetCount = length === 'Short' ? 9 : 14;
   
   if (opps.length === 0) {
-    // Fallback
     const fallback = OPPONENTS.filter(o => o.shortName !== userTeamId);
-    const result: Opponent[] = [];
+    const result = [];
     while (result.length < targetCount) {
       result.push(...[...fallback].sort(() => 0.5 - Math.random()));
     }
     return result.slice(0, targetCount);
   }
+
+  // Get the top 4 for the year
+  const topFour = IPL_TOP_FOUR_MAP[year] || [];
+  // Finalists array [Winner, Runner-Up]
+  const finalists = IPL_FINALISTS_MAP[year] || [];
   
-  const result: Opponent[] = [];
-  while (result.length < targetCount) {
-    result.push(...[...opps].sort(() => 0.5 - Math.random()));
+  let winner = finalists[0] || topFour[0];
+  let runnerUp = finalists[1] || topFour[1];
+  let third = topFour[2];
+  let fourth = topFour[3];
+  
+  // Create an array of the sequence for the last 4 matches
+  let finalSequenceIds = [];
+  
+  if (userTeamId === winner) {
+    // If user is winner, sequence is [5th, 4th, 3rd, Runner-up]
+    let fifthCandidates = opps.filter(o => !topFour.includes(o.shortName));
+    let fifth = fifthCandidates.length > 0 ? fifthCandidates[0].shortName : null;
+    finalSequenceIds = [fifth, fourth, third, runnerUp];
+  } else if (userTeamId === runnerUp) {
+    // If user is runner-up, sequence is [5th, 4th, 3rd, Winner]
+    let fifthCandidates = opps.filter(o => !topFour.includes(o.shortName));
+    let fifth = fifthCandidates.length > 0 ? fifthCandidates[0].shortName : null;
+    finalSequenceIds = [fifth, fourth, third, winner];
+  } else if (userTeamId === third) {
+    // user is 3rd, 5th -> 4th -> Runner-up -> Winner
+    let fifthCandidates = opps.filter(o => !topFour.includes(o.shortName));
+    let fifth = fifthCandidates.length > 0 ? fifthCandidates[0].shortName : null;
+    finalSequenceIds = [fifth, fourth, runnerUp, winner];
+  } else if (userTeamId === fourth) {
+    // user is 4th, 5th -> 3rd -> Runner-up -> Winner
+    let fifthCandidates = opps.filter(o => !topFour.includes(o.shortName));
+    let fifth = fifthCandidates.length > 0 ? fifthCandidates[0].shortName : null;
+    finalSequenceIds = [fifth, third, runnerUp, winner];
+  } else {
+    // user is not in top 4, sequence is [4th, 3rd, Runner-up, Winner]
+    finalSequenceIds = [fourth, third, runnerUp, winner];
   }
+  
+  // Filter out any nulls from finalSequenceIds
+  finalSequenceIds = finalSequenceIds.filter(Boolean);
+  
+  // The rest of the opponents
+  const remainingOpps = opps.filter(o => !finalSequenceIds.includes(o.shortName));
+  const shuffledRemaining = [...remainingOpps].sort(() => 0.5 - Math.random());
+  
+  // Fill the result
+  let result = [];
+  let neededBeforeFinal = targetCount - finalSequenceIds.length;
+  
+  while (result.length < neededBeforeFinal) {
+    if (shuffledRemaining.length > 0) {
+      result.push(...shuffledRemaining);
+    } else {
+      // If for some reason we don't have enough, just push something
+      result.push(...opps);
+    }
+  }
+  
+  result = result.slice(0, neededBeforeFinal);
+  
+  // Map finalSequenceIds to Opponent objects
+  for (const tId of finalSequenceIds) {
+    let opp = opps.find(o => o.shortName === tId);
+    if (!opp) opp = OPPONENTS.find(o => o.shortName === tId);
+    if (opp) result.push(opp);
+  }
+  
+  // If we still didn't reach targetCount (e.g. finalSequenceIds had missing items), pad it
+  while (result.length < targetCount) {
+    result.push(opps[Math.floor(Math.random() * opps.length)]);
+  }
+
   return result.slice(0, targetCount);
 }
 
@@ -189,6 +254,7 @@ export default function App() {
   // Drafting Screen selection state
   const [selectedDraftPlayer, setSelectedDraftPlayer] = useState<Player | null>(null);
   const [draftCategoryTab, setDraftCategoryTab] = useState<'All' | PlayerRole>('All');
+  const [draftTierTab, setDraftTierTab] = useState<'All' | 'Legend' | 'Star' | 'Emerging'>('All');
 
   // Match Simulation animation states
   const [isSimulating, setIsSimulating] = useState(false);
@@ -233,6 +299,19 @@ export default function App() {
   // Squad calculation
   const squadBalance = useMemo(() => {
     return calculateSquadBalance(gameState.squad, activeTheme.shortName);
+  }, [gameState.squad]);
+
+  // Squad tiers count
+  const squadTiers = useMemo(() => {
+    let legends = 0;
+    let stars = 0;
+    let emerging = 0;
+    gameState.squad.forEach(p => {
+      if (isLegendPlayer(p)) legends++;
+      else if (isStarPlayer(p)) stars++;
+      else if (isEmergingPlayer(p)) emerging++;
+    });
+    return { legends, stars, emerging };
   }, [gameState.squad]);
 
   // Campaign Opponents list for active run
@@ -334,6 +413,7 @@ export default function App() {
     }));
     setSelectedDraftPlayer(null);
     setDraftCategoryTab('All');
+    setDraftTierTab('All');
   };
 
   const handleSelectDraftPlayer = (player: Player) => {
@@ -359,6 +439,7 @@ export default function App() {
       }));
       setSelectedDraftPlayer(null);
       setDraftCategoryTab('All');
+      setDraftTierTab('All');
     } else {
       // Squad drafting complete, go to Captain Selection screen
       setGameState(prev => ({
@@ -381,13 +462,11 @@ export default function App() {
     }
 
     const randomYear = availableYears[Math.floor(Math.random() * availableYears.length)];
-    const draftedNames = new Set(gameState.squad.map(p => p.name.toLowerCase().trim()));
     
     // Fetch all players for this team and year that have NOT been drafted
     const options = PLAYER_DATABASE.filter(
       p => p.originalTeam === currentTeam && 
-           p.year === randomYear &&
-           !draftedNames.has(p.name.toLowerCase().trim())
+           p.year === randomYear 
     );
 
     const sortedOptions = [...options].sort((a, b) => b.rating - a.rating);
@@ -400,6 +479,7 @@ export default function App() {
     }));
     setSelectedDraftPlayer(null);
     setDraftCategoryTab('All');
+    setDraftTierTab('All');
   };
 
   const handleRerollDraftTeam = () => {
@@ -407,7 +487,6 @@ export default function App() {
     const currentYear = gameState.currentDraftYear;
     if (!currentYear) return;
 
-    const draftedNames = new Set(gameState.squad.map(p => p.name.toLowerCase().trim()));
     const draftedTeams = gameState.squad.map(p => p.originalTeam);
     const teamCounts: Record<string, number> = {};
     draftedTeams.forEach(t => {
@@ -425,8 +504,7 @@ export default function App() {
 
       const options = PLAYER_DATABASE.filter(
         p => p.originalTeam === teamId && 
-             p.year === currentYear &&
-             !draftedNames.has(p.name.toLowerCase().trim())
+             p.year === currentYear 
       );
       return options.length > 0;
     });
@@ -439,8 +517,7 @@ export default function App() {
         if (!activeYears.includes(currentYear)) return false;
         const options = PLAYER_DATABASE.filter(
           p => p.originalTeam === teamId && 
-               p.year === currentYear &&
-               !draftedNames.has(p.name.toLowerCase().trim())
+               p.year === currentYear 
         );
         return options.length > 0;
       });
@@ -451,8 +528,7 @@ export default function App() {
     const randomTeam = validFranchises[Math.floor(Math.random() * validFranchises.length)];
     const options = PLAYER_DATABASE.filter(
       p => p.originalTeam === randomTeam && 
-           p.year === currentYear &&
-           !draftedNames.has(p.name.toLowerCase().trim())
+           p.year === currentYear 
     );
     const sortedOptions = [...options].sort((a, b) => b.rating - a.rating);
 
@@ -464,6 +540,7 @@ export default function App() {
     }));
     setSelectedDraftPlayer(null);
     setDraftCategoryTab('All');
+    setDraftTierTab('All');
   };
 
   const handleSelectCaptain = (playerId: string) => {
@@ -527,9 +604,10 @@ export default function App() {
         gameState.currentMatchNumber,
         gameState.squad,
         gameState.captainId,
-        activeTheme.name,
+
         activeOpponent,
-        gameState.tournamentLength === 'Long'
+        gameState.tournamentLength === 'Long',
+        gameState.tournamentYear
       );
 
       setLastMatchResult(result);
@@ -612,11 +690,23 @@ export default function App() {
     setSelectedDraftPlayer(null);
   };
 
-  // Filter rolled players by selected role tab
+  // Filter rolled players by selected role and tier tabs
   const filteredDraftOptions = useMemo(() => {
-    if (draftCategoryTab === 'All') return gameState.currentDraftOptions;
-    return gameState.currentDraftOptions.filter(p => p.role === draftCategoryTab);
-  }, [gameState.currentDraftOptions, draftCategoryTab]);
+    let list = gameState.currentDraftOptions;
+    if (draftCategoryTab !== 'All') {
+      list = list.filter(p => p.role === draftCategoryTab);
+    }
+    if (draftTierTab !== 'All') {
+      if (draftTierTab === 'Legend') {
+        list = list.filter(p => isLegendPlayer(p));
+      } else if (draftTierTab === 'Star') {
+        list = list.filter(p => isStarPlayer(p));
+      } else if (draftTierTab === 'Emerging') {
+        list = list.filter(p => isEmergingPlayer(p));
+      }
+    }
+    return list;
+  }, [gameState.currentDraftOptions, draftCategoryTab, draftTierTab]);
 
   const rolledFranchise = useMemo(() => {
     return IPL_TEAMS.find(t => t.id === gameState.currentDraftFranchiseId);
@@ -868,7 +958,7 @@ export default function App() {
                     onMouseEnter={() => setHoveredTeamId(team.id)}
                     onMouseLeave={() => setHoveredTeamId(null)}
                     onClick={() => handleSelectTeam(team.id)}
-                    className="relative p-5 rounded-none border-2 bg-theme-dark cursor-pointer transition-all duration-300 flex flex-col justify-between h-[160px] overflow-hidden"
+                    className="relative p-5 rounded-none border-2 bg-theme-dark cursor-pointer transition-all duration-300 flex flex-col justify-between min-h-[175px] overflow-hidden"
                     style={{
                       borderColor: isHovered ? getVibrantTeamColor(team.id) : 'rgba(255, 255, 255, 0.1)',
                       boxShadow: isHovered ? `0 0 30px ${getVibrantTeamColor(team.id)}, inset 0 0 12px ${getVibrantTeamColor(team.id)}40` : 'none',
@@ -884,12 +974,37 @@ export default function App() {
                       <span className="text-3xl leading-none">{team.emoji}</span>
                       <span className="font-mono text-xs text-white/40 font-black tracking-widest">{team.shortName}</span>
                     </div>
-
+                    
                     <div className="mt-4">
                       <h4 className="font-display font-black text-base text-white leading-tight uppercase tracking-tight">{team.name}</h4>
-                      <div className="flex gap-2 mt-2">
-                        <span className="w-4 h-4 rounded-none border border-white/20" style={{ backgroundColor: team.primaryColor }} />
-                        <span className="w-4 h-4 rounded-none border border-white/20" style={{ backgroundColor: team.secondaryColor }} />
+                      <div className="flex items-center justify-between mt-2 flex-wrap gap-2">
+                        <div className="flex gap-2">
+                          <span className="w-4 h-4 rounded-none border border-white/20" style={{ backgroundColor: team.primaryColor }} />
+                          <span className="w-4 h-4 rounded-none border border-white/20" style={{ backgroundColor: team.secondaryColor }} />
+                        </div>
+                        
+                        {/* Championship Winning Years */}
+                        {(() => {
+                          const yearsWon = Object.keys(IPL_WINNERS_MAP)
+                            .map(Number)
+                            .filter(yr => IPL_WINNERS_MAP[yr] === team.id);
+                          
+                          if (yearsWon.length === 0) return null;
+                          
+                          return (
+                            <div className="flex flex-wrap gap-1 items-center justify-end max-w-[70%]">
+                              {yearsWon.map(yr => (
+                                <span
+                                  key={yr}
+                                  className="text-[8px] font-mono px-1 py-0.5 rounded-none font-bold bg-amber-500/10 border border-amber-500/40 text-amber-300 shadow-[0_0_8px_rgba(245,158,11,0.25)] hover:shadow-[0_0_12px_rgba(245,158,11,0.5)] transition-all animate-pulse"
+                                  title={`${team.shortName} Champions - ${yr}`}
+                                >
+                                  🏆{yr}
+                                </span>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -931,19 +1046,36 @@ export default function App() {
                   Select Opponent Season Database
                 </label>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-4 xl:grid-cols-5">
-                  {getActiveYearsForTeam(gameState.selectedTeamId).map((yr) => (
-                    <button
-                      key={yr}
-                      onClick={() => setGameState(prev => ({ ...prev, tournamentYear: yr }))}
-                      className={`py-2 rounded-none border text-xs font-mono font-bold transition-all ${
-                        gameState.tournamentYear === yr
-                          ? 'border-white bg-theme-accent text-theme-dark shadow-[2px_2px_0px_var(--theme-border)] font-black scale-[1.02]'
-                          : 'border-white/10 bg-theme-bg text-white/70 hover:border-theme-accent hover:text-white'
-                      }`}
-                    >
-                      {yr}
-                    </button>
-                  ))}
+                  {getActiveYearsForTeam(gameState.selectedTeamId).map((yr) => {
+                    const isWinnerYear = IPL_WINNERS_MAP[yr] === gameState.selectedTeamId;
+                    return (
+                      <button
+                        key={yr}
+                        onClick={() => setGameState(prev => ({ ...prev, tournamentYear: yr }))}
+                        className={`py-2 rounded-none border text-xs font-mono font-bold transition-all relative overflow-hidden flex flex-col items-center justify-center gap-0.5 leading-none h-[48px] ${
+                          gameState.tournamentYear === yr
+                            ? 'border-white bg-theme-accent text-theme-dark shadow-[2px_2px_0px_var(--theme-border)] font-black scale-[1.02]'
+                            : isWinnerYear
+                            ? 'border-amber-400 bg-amber-500/10 text-amber-300 hover:border-amber-300 hover:text-amber-100'
+                            : 'border-white/10 bg-theme-bg text-white/70 hover:border-theme-accent hover:text-white'
+                        }`}
+                        style={isWinnerYear && gameState.tournamentYear !== yr ? {
+                          boxShadow: '0 0 12px rgba(245, 158, 11, 0.4), inset 0 0 6px rgba(245, 158, 11, 0.2)',
+                          borderColor: '#f59e0b',
+                        } : undefined}
+                      >
+                        <span className="flex items-center gap-0.5">
+                          {yr}
+                          {isWinnerYear && <Trophy className="w-3 h-3 text-amber-400 fill-amber-400 stroke-1" />}
+                        </span>
+                        {isWinnerYear && (
+                          <span className={`text-[7px] font-sans uppercase font-black tracking-wider ${gameState.tournamentYear === yr ? 'text-theme-dark' : 'text-amber-400'} scale-90 mt-0.5`}>
+                            CHAMPION
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
                 <p className="text-[10px] text-white/50 mt-2 leading-relaxed uppercase font-semibold">
                   Your team will play against historical rosters from this year. Rating values reflect actual seasonal stats.
@@ -1128,6 +1260,40 @@ export default function App() {
                 })}
               </div>
 
+              {/* Player Tier Filter Tabs */}
+              <div className="flex overflow-x-auto gap-2 pb-2 mt-2">
+                {([
+                  { id: 'All', label: 'All Tiers', emoji: '🌟' },
+                  { id: 'Legend', label: 'Legends', emoji: '👑' },
+                  { id: 'Star', label: 'Stars', emoji: '⭐' },
+                  { id: 'Emerging', label: 'Emerging', emoji: '🌱' }
+                ] as const).map((tab) => {
+                  const count = tab.id === 'All'
+                    ? gameState.currentDraftOptions.length
+                    : tab.id === 'Legend'
+                    ? gameState.currentDraftOptions.filter(o => isLegendPlayer(o)).length
+                    : tab.id === 'Star'
+                    ? gameState.currentDraftOptions.filter(o => isStarPlayer(o)).length
+                    : gameState.currentDraftOptions.filter(o => isEmergingPlayer(o)).length;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setDraftTierTab(tab.id)}
+                      className={`px-3 py-1.5 rounded-none text-[11px] font-mono font-bold transition-all whitespace-nowrap border uppercase tracking-wider flex items-center gap-1.5 ${
+                        draftTierTab === tab.id
+                          ? 'border-white bg-white/20 text-white shadow-[1px_1px_0px_white]'
+                          : 'border-white/10 bg-theme-bg text-white/50 hover:border-white/30 hover:text-white'
+                      }`}
+                    >
+                      <span>{tab.emoji}</span>
+                      <span>{tab.label}</span>
+                      <span className="opacity-60">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* Confirm / Draft Locked bar */}
               <div className="sticky top-4 z-20 p-5 bg-theme-dark border-2 border-theme-border rounded-none backdrop-blur flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[4px_4px_0px_var(--theme-border)]">
                 <div className="flex items-center gap-3">
@@ -1165,8 +1331,8 @@ export default function App() {
               <div className="grid sm:grid-cols-1 md:grid-cols-2 gap-8">
                 {filteredDraftOptions.map((player) => {
                   const isAlreadyDrafted = gameState.squad.some(p => p.id === player.id || p.name.toLowerCase().trim() === player.name.toLowerCase().trim());
-                  const isPlayerOverseas = isOverseasPlayer(player.name, player.description);
-                  const overseasCount = gameState.squad.filter(p => isOverseasPlayer(p.name, p.description)).length;
+                  const isPlayerOverseas = isOverseasPlayer(player);
+                  const overseasCount = gameState.squad.filter(p => isOverseasPlayer(p)).length;
                   const isOverseasLimitReached = overseasCount >= 4 && !gameState.squad.some(p => p.id === player.id);
                   const isLocked = isAlreadyDrafted || (isPlayerOverseas && isOverseasLimitReached);
                   const lockReason = isAlreadyDrafted ? 'Already Drafted' : (isPlayerOverseas && isOverseasLimitReached) ? 'Foreign Limit (Max 4)' : undefined;
@@ -1213,6 +1379,25 @@ export default function App() {
                       className="bg-theme-accent h-full transition-all duration-300"
                       style={{ width: `${(gameState.squad.length / 11) * 100}%` }}
                     />
+                  </div>
+
+                  {/* Squad Tier Summary */}
+                  <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/5">
+                    <div className="p-1.5 bg-theme-dark border border-white/5 text-center">
+                      <span className="block text-xs leading-none">👑</span>
+                      <span className="block text-[8px] font-mono uppercase text-white/40 mt-1">Legends</span>
+                      <span className="block text-xs font-black text-white font-display mt-0.5">{squadTiers.legends}</span>
+                    </div>
+                    <div className="p-1.5 bg-theme-dark border border-white/5 text-center">
+                      <span className="block text-xs leading-none">⭐</span>
+                      <span className="block text-[8px] font-mono uppercase text-white/40 mt-1">Stars</span>
+                      <span className="block text-xs font-black text-theme-accent font-display mt-0.5">{squadTiers.stars}</span>
+                    </div>
+                    <div className="p-1.5 bg-[#0a1e1b] border border-emerald-500/10 text-center">
+                      <span className="block text-xs leading-none">🌱</span>
+                      <span className="block text-[8px] font-mono uppercase text-emerald-400/40 mt-1">Emerging</span>
+                      <span className="block text-xs font-black text-emerald-400 font-display mt-0.5">{squadTiers.emerging}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1348,7 +1533,16 @@ export default function App() {
 
                         <div>
                           <h4 className="font-display font-black text-xs uppercase line-clamp-2 leading-tight">{player.name}</h4>
-                          <p className={`text-[9px] mt-1 uppercase font-mono ${isCap ? 'text-[#001D3D]/70' : 'text-white/50'}`}>{player.role}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <p className={`text-[9px] uppercase font-mono ${isCap ? 'text-[#001D3D]/70' : 'text-white/50'}`}>{player.role}</p>
+                            {isLegendPlayer(player) ? (
+                              <span className="text-[10px]" title="Legend Player">👑</span>
+                            ) : isStarPlayer(player) ? (
+                              <span className="text-[10px]" title="Star Player">⭐</span>
+                            ) : isEmergingPlayer(player) ? (
+                              <span className="text-[10px]" title="Emerging Player">🌱</span>
+                            ) : null}
+                          </div>
                         </div>
 
                         {isCap && (
@@ -1402,8 +1596,7 @@ export default function App() {
                     const isCap = gameState.captainId === player.id;
                     const isFirst = idx === 0;
                     const isLast = idx === gameState.squad.length - 1;
-                    const isLoyal = isTenYearLoyalist(player.name, player.originalTeam);
-                    return (
+                                        return (
                       <div 
                         key={player.id} 
                         className={`flex items-center justify-between p-2.5 border uppercase text-xs font-mono font-medium ${
@@ -1417,7 +1610,7 @@ export default function App() {
                             <span className="font-sans font-black text-sm text-white flex items-center gap-1.5 leading-none truncate">
                               {player.name}
                               {isCap && <span className="bg-red-600 text-white text-[8px] px-1 py-0.5 rounded-none shrink-0">C</span>}
-                              {isLoyal && <span className="bg-emerald-600 text-white text-[8px] px-1 py-0.5 rounded-none shrink-0" title="10+ Year Franchise Loyalist">🛡️ LOYAL</span>}
+                              
                             </span>
                             <span className="text-[10px] text-white/50 mt-1 truncate">
                               {player.role} • {player.originalTeam} ({player.rating} OVR)
