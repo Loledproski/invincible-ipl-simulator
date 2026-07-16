@@ -74,11 +74,14 @@ export interface MatchResult {
   opponentScorecard: MatchScorecardEntry[];
 }
 
+export type Difficulty = 'EASY' | 'NORMAL' | 'HARD';
+
 export interface CampaignState {
   status: 'LOBBY' | 'TEAM_SELECT' | 'TOURNAMENT_CONFIG' | 'DRAFTING' | 'SQUAD_PREVIEW' | 'PLAYING' | 'GAME_OVER' | 'WINNER';
   selectedTeamId: string;
   tournamentYear: number;
   tournamentLength: 'Short' | 'Long'; // Short = 9 matches, Long = 14 matches
+  difficulty: Difficulty;
   currentMatchNumber: number; // 1-indexed
   squad: Player[];
   captainId: string | null;

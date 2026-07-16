@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import {
   Trophy,
 
@@ -26,9 +26,10 @@ import {
   Home,
   ChevronUp,
   ChevronDown,
-  Shuffle
+  Shuffle,
+  GripVertical
 } from 'lucide-react';
-import { Player, Opponent, MatchResult, CampaignState, PlayerRole } from './types';
+import { Player, Opponent, MatchResult, CampaignState, PlayerRole, Difficulty } from './types';
 import { IPL_TEAMS, OPPONENTS, PLAYER_DATABASE, IPL_WINNERS_MAP, IPL_FINALISTS_MAP, IPL_TOP_FOUR_MAP, getActiveYearsForTeam, getOpponentsForYear } from './data';
 import { PlayerCard } from './components/PlayerCard';
 import { calculateSquadBalance, simulateMatch } from './simulator';
@@ -239,6 +240,7 @@ export default function App() {
     selectedTeamId: 'RCB', // default starting theme preview
     tournamentYear: 2024,
     tournamentLength: 'Short',
+    difficulty: 'NORMAL',
     currentMatchNumber: 1,
     squad: [],
     captainId: null,
@@ -389,7 +391,7 @@ export default function App() {
     }));
   };
 
-  const handleConfigureTournament = (year: number, length: 'Short' | 'Long') => {
+  const handleConfigureTournament = (year: number, length: 'Short' | 'Long', difficulty: Difficulty = 'NORMAL') => {
     // Generate the opponents
     const generatedOpps = generateOpponentsList(length, gameState.selectedTeamId, year);
     setOpponentsList(generatedOpps);
@@ -397,10 +399,13 @@ export default function App() {
     // Prepare initial draft options
     const { teamId: rolledTeamId, year: rolledYear, options: firstOptions } = rollTeamAndGetOptions([]);
 
+    const rerolls = difficulty === 'EASY' ? 6 : difficulty === 'HARD' ? 0 : 3;
+
     setGameState(prev => ({
       ...prev,
       tournamentYear: year,
       tournamentLength: length,
+      difficulty,
       status: 'DRAFTING',
       squad: [],
       captainId: null,
@@ -409,7 +414,7 @@ export default function App() {
       currentDraftOptions: firstOptions,
       currentDraftFranchiseId: rolledTeamId,
       currentDraftYear: rolledYear,
-      rerollsLeft: 3
+      rerollsLeft: rerolls
     }));
     setSelectedDraftPlayer(null);
     setDraftCategoryTab('All');
@@ -604,10 +609,10 @@ export default function App() {
         gameState.currentMatchNumber,
         gameState.squad,
         gameState.captainId,
-
         activeOpponent,
         gameState.tournamentLength === 'Long',
-        gameState.tournamentYear
+        gameState.tournamentYear,
+        gameState.difficulty
       );
 
       setLastMatchResult(result);
@@ -1114,9 +1119,53 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Difficulty Selector */}
+              <div>
+                <label className="block text-xs font-mono font-bold text-white/70 uppercase tracking-widest mb-3">
+                  Choose Difficulty
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setGameState(prev => ({ ...prev, difficulty: 'EASY' }))}
+                    className={`p-3 rounded-none border text-left flex flex-col transition-all ${
+                      gameState.difficulty === 'EASY'
+                        ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400 shadow-[2px_2px_0px_rgba(16,185,129,0.5)]'
+                        : 'border-white/10 bg-theme-bg text-white/70 hover:border-emerald-500/50 hover:text-emerald-400/80'
+                    }`}
+                  >
+                    <span className={`font-display font-black text-sm uppercase tracking-tight`}>Easy</span>
+                    <span className={`text-[9px] mt-1 uppercase font-semibold leading-relaxed opacity-80`}>6 Re-rolls. Higher win chances.</span>
+                  </button>
+
+                  <button
+                    onClick={() => setGameState(prev => ({ ...prev, difficulty: 'NORMAL' }))}
+                    className={`p-3 rounded-none border text-left flex flex-col transition-all ${
+                      gameState.difficulty === 'NORMAL'
+                        ? 'border-[#FFC300] bg-[#FFC300]/10 text-[#FFC300] shadow-[2px_2px_0px_rgba(255,195,0,0.5)]'
+                        : 'border-white/10 bg-theme-bg text-white/70 hover:border-[#FFC300]/50 hover:text-[#FFC300]/80'
+                    }`}
+                  >
+                    <span className={`font-display font-black text-sm uppercase tracking-tight`}>Normal</span>
+                    <span className={`text-[9px] mt-1 uppercase font-semibold leading-relaxed opacity-80`}>3 Re-rolls. Standard balanced odds.</span>
+                  </button>
+
+                  <button
+                    onClick={() => setGameState(prev => ({ ...prev, difficulty: 'HARD' }))}
+                    className={`p-3 rounded-none border text-left flex flex-col transition-all ${
+                      gameState.difficulty === 'HARD'
+                        ? 'border-red-500 bg-red-500/10 text-red-400 shadow-[2px_2px_0px_rgba(239,68,68,0.5)]'
+                        : 'border-white/10 bg-theme-bg text-white/70 hover:border-red-500/50 hover:text-red-400/80'
+                    }`}
+                  >
+                    <span className={`font-display font-black text-sm uppercase tracking-tight`}>Hard</span>
+                    <span className={`text-[9px] mt-1 uppercase font-semibold leading-relaxed opacity-80`}>0 Re-rolls. No second chances.</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Action Button */}
               <button
-                onClick={() => handleConfigureTournament(gameState.tournamentYear, gameState.tournamentLength)}
+                onClick={() => handleConfigureTournament(gameState.tournamentYear, gameState.tournamentLength, gameState.difficulty)}
                 className="w-full py-4 rounded-none font-display font-black uppercase text-sm tracking-widest bg-white text-theme-dark hover:bg-theme-accent transition-colors flex items-center justify-center gap-2 mt-4 shadow-[4px_4px_0px_var(--theme-border)] border-2 border-white cursor-pointer"
               >
                 Proceed to Draft Room <ChevronRight className="w-4 h-4" />
@@ -1589,22 +1638,28 @@ export default function App() {
                   <h3 className="font-display font-black text-[#FFC300] text-lg uppercase tracking-tight">3. Set Batting Order</h3>
                   <p className="text-xs text-white/50">Rearrange players (1 to 11). Place batsmen in the top order, and bowlers lower down.</p>
                 </div>
-
-
-                <div className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1 bg-[#000814] border border-white/10 p-3 rounded-none shadow-[3px_3px_0px_#003566]">
+                <Reorder.Group 
+                  axis="y" 
+                  values={gameState.squad} 
+                  onReorder={(newSquad) => setGameState(prev => ({...prev, squad: newSquad}))}
+                  className="flex flex-col gap-2 max-h-[500px] overflow-y-auto pr-1 bg-[#000814] border border-white/10 p-3 rounded-none shadow-[3px_3px_0px_#003566]"
+                >
                   {gameState.squad.map((player, idx) => {
                     const isCap = gameState.captainId === player.id;
                     const isFirst = idx === 0;
                     const isLast = idx === gameState.squad.length - 1;
-                                        return (
-                      <div 
+                    
+                    return (
+                      <Reorder.Item 
                         key={player.id} 
-                        className={`flex items-center justify-between p-2.5 border uppercase text-xs font-mono font-medium ${
-                          isCap ? 'bg-[#FFC300]/10 border-[#FFC300]/30 text-[#FFC300]' : 'bg-[#001D3D]/40 border-white/5 text-white/80'
+                        value={player}
+                        className={`flex items-center justify-between p-2.5 border uppercase text-xs font-mono font-medium cursor-grab active:cursor-grabbing ${
+                          isCap ? 'bg-[#FFC300]/10 border-[#FFC300]/30 text-[#FFC300]' : 'bg-[#001D3D]/40 border-white/5 text-white/80 hover:bg-[#001D3D]/80'
                         }`}
                       >
                         {/* Batting Position Indicator */}
                         <div className="flex items-center gap-3 min-w-0">
+                          <GripVertical className="w-5 h-5 text-white/20 shrink-0" />
                           <span className="w-6 shrink-0 text-center font-black text-[#FFC300] text-sm">#{idx + 1}</span>
                           <div className="flex flex-col min-w-0">
                             <span className="font-sans font-black text-sm text-white flex items-center gap-1.5 leading-none truncate">
@@ -1617,7 +1672,6 @@ export default function App() {
                             </span>
                           </div>
                         </div>
-
                         {/* Swap Buttons */}
                         <div className="flex items-center gap-1 shrink-0">
                           <button
@@ -1645,10 +1699,10 @@ export default function App() {
                             <ChevronDown className="w-4 h-4" />
                           </button>
                         </div>
-                      </div>
+                      </Reorder.Item>
                     );
                   })}
-                </div>
+                </Reorder.Group>
               </div>
             </div>
 
@@ -1975,10 +2029,10 @@ export default function App() {
             </div>
 
             <span className="text-xs font-mono text-[#FFC300] uppercase tracking-[0.2em] font-black">CLEAN SWEEP IMMORTALITY</span>
-            <h2 className="text-3xl sm:text-5xl font-display font-black text-white mt-1 uppercase italic tracking-tighter leading-none">🏆 YOU ARE INVINCIBLE!</h2>
+            <h2 className="text-3xl sm:text-5xl font-display font-black text-white mt-1 uppercase italic tracking-tighter leading-none">🏆 {activeTheme.shortName} IS INVINCIBLE!</h2>
             
             <p className="text-sm text-white/70 mt-3 leading-relaxed max-w-lg mx-auto font-semibold uppercase">
-              Outstanding strategic planning! Your playing XI has successfully completed a flawless <span className="text-white font-black font-mono">{gameState.history.length}</span> matches clean sweep against the toughest records of the <span className="text-white font-black">{gameState.tournamentYear}</span> season!
+              Outstanding strategic planning! Your {activeTheme.name} playing XI has successfully completed a flawless <span className="text-white font-black font-mono">{gameState.history.length}</span> matches clean sweep against the toughest records of the <span className="text-white font-black">{gameState.tournamentYear}</span> season!
             </p>
 
             {/* Immortalized stats block */}

@@ -1,4 +1,4 @@
-import { Player, Opponent, MatchResult, MatchScorecardEntry } from './types';
+import { Player, Opponent, MatchResult, MatchScorecardEntry, Difficulty } from './types';
 import { PLAYER_DATABASE, IPL_WINNERS_MAP, IPL_FINALISTS_MAP, IPL_TOP_FOUR_MAP } from './data';
 import { isOverseasPlayer } from './utils';
 
@@ -111,16 +111,6 @@ export function calculateSquadBalance(squad: Player[], activeThemeShortName?: st
     overallStrength = finalBattingAdj;
   } else if (finalBowlingAdj > 0) {
     overallStrength = finalBowlingAdj;
-  }
-  
-  if (activeThemeShortName) {
-    const loyalPlayers = squad.filter(p => p.originalTeam === activeThemeShortName).length;
-    if (loyalPlayers >= 3) {
-      const bonus = Math.floor(loyalPlayers / 2); // 3 loyal -> +1, 4 -> +2, etc.
-      overallStrength += bonus;
-      finalBattingAdj += bonus;
-      finalBowlingAdj += bonus;
-    }
   }
 
   return {
@@ -542,10 +532,10 @@ export function simulateMatch(
   matchNumber: number,
   squad: Player[],
   captainId: string | null,
-
   opponent: Opponent,
   isLongTournament: boolean = false,
-  selectedTournamentYear?: number
+  selectedTournamentYear?: number,
+  difficulty: Difficulty = 'NORMAL'
 ): MatchResult {
   // Determine tournament year
   const tournamentYear = selectedTournamentYear || (squad.length > 0 ? squad[0].year : 2024);
@@ -588,23 +578,19 @@ export function simulateMatch(
   const oppWicketFactor = 5.0 + (userBowlStrength - oppBatStrength) * 0.08 + (randomInRange(-20, 20) / 10);
   let oppWickets = Math.min(10, Math.max(0, Math.round(oppWicketFactor)));
 
-  // Target win probability to win the tournament ~1 in 10 runs:
-  // Short (9 matches): p = 77%
-  // Long (14 matches): p = 85%
-  let winChance = isLongTournament ? 85 : 77;
+  // Target win probability to win the tournament ~1 in 3 runs:
+  // Short (9 matches): p = 88%
+  // Long (14 matches): p = 92%
+  let winChance = isLongTournament ? 92 : 88;
 
   // 1. Squad strength bonus
   const userOvr = userBalance.overallStrength;
   const oppOvr = oppBalance.overallStrength;
   if (userOvr > oppOvr) {
-    winChance += Math.min(5, Math.round((userOvr - oppOvr) * 1.5));
+    winChance += Math.min(8, Math.round((userOvr - oppOvr) * 2.0));
   } else {
-    winChance -= Math.min(10, Math.round((oppOvr - userOvr) * 1.5));
+    winChance -= Math.min(8, Math.round((oppOvr - userOvr) * 1.2));
   }
-
-  // 2. Loyalty Boost: +3% per 10-year franchise loyalist!
-  const loyalistCount = 0;
-  winChance += loyalistCount * 3;
 
   // 3. Balance Penalties: -15% per squad composition error
   if (userBalance.errors.length > 0) {
@@ -635,6 +621,11 @@ export function simulateMatch(
     winChance -= 5;
   } else if (topFourOfThatYear.includes(opponent.shortName)) {
     winChance -= 3;
+  }
+
+  // C. Difficulty modifier
+  if (difficulty === 'EASY') {
+    winChance += 5;
   }
 
   // Clamp win chance between 15% and 95%
